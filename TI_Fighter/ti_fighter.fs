@@ -25,6 +25,18 @@ HEX
    DATA 4 FEA9 4101 0101 0101 82 DCHAR
    DATA 4 0101 0101 0101 01FE 83 DCHAR ;
 
+: ManRight1 ( --) \ man facing right, frame #1
+   DATA 4 0302 0201 0302 0607 100 DCHAR
+   DATA 4 0603 0202 0202 0203 101 DCHAR
+   DATA 4 0080 8000 C048 6850 102 DCHAR
+   DATA 4 40C0 4040 4040 4070 103 DCHAR ;
+
+: ManRight2 ( --) \ man facing right, frame #2
+   DATA 4 0101 0100 0306 0A07 100 DCHAR
+   DATA 4 0203 0202 0204 0406 101 DCHAR
+   DATA 4 8060 6080 C868 5040 102 DCHAR
+   DATA 4 40C0 4020 1010 101C 103 DCHAR ;
+
 DECIMAL
 
 : NextColumn ( --)	\ advance to the next column
@@ -43,12 +55,15 @@ DECIMAL
 : DrawBrick ( --) \ draws a brick tile at Column & Row
    128 129 130 131 DrawIt ;
 
+: ManSprite ( --) \  Defines sprite 0
+    0 128 48 0 5 SPRITE ;
+
 : DefineGraphics ( --)
   \ define the user defined graphics and set colours of character sets
    1 GMODE FALSE SSCROLL !
    32 0 DO I 1 14 COLOR LOOP
    16 1 15 COLOR  	\ brick colour
-   BrickUDG 
+   BrickUDG ManRight1
    ;
 
 : BrickRows ( --)
@@ -66,7 +81,9 @@ DECIMAL
 : Fighter ( --)
     \ entry point of game
     DefineGraphics BrickRows
-    KEY DROP ;
+    3 MAGNIFY
+    ManSprite
+    30 23 GOTOXY KEY DROP ;
 
     
 
