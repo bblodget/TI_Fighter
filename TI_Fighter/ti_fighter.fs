@@ -1,3 +1,14 @@
+FORGET -->>
+
+: -->> 0 EMIT [COMPILE] --> ; IMMEDIATE
+
+: Reload ( --)
+\ Reloads FIGHTER block file
+S" DSK3.FIGHTER" USE
+;
+
+   0 VALUE Column			\ used by DrawIt
+   0 VALUE Row			\ used by DrawIt
    1 CONSTANT Fire?		\ comparison check for fire button
    2 CONSTANT Left?		\ comparison check for left
    4 CONSTANT Right?		\ comparison check for right
@@ -15,7 +26,10 @@ HEX
    DATA 4 0101 0101 0101 01FE 83 DCHAR ;
 
 DECIMAL
- 
+
+: NextColumn ( --)	\ advance to the next column
+   2 +TO Column ;
+
 : DrawIt ( a b c d --)
   \ emits the four ascii characters on the stack to the screen as follows:
   \ ac
@@ -34,12 +48,8 @@ DECIMAL
    1 GMODE FALSE SSCROLL !
    32 0 DO I 1 14 COLOR LOOP
    16 1 15 COLOR  	\ brick colour
-   17 4 15 COLOR  	\ robot colour
-   18 15 14 COLOR 	\ empty tile colour
-   19 1 15 COLOR  	\ orb colour
-   21 3 14 COLOR  	\ time bar
-   BrickUDG BallUDG1 RobotUDG1 OrbUDG EmptyUDG 
-   BarUDG2  BarUDG4  BarUDG6   BarUDG8 ;
+   BrickUDG 
+   ;
 
 : BrickRows ( --)
   \ draws rows of bricks at top and bottom of screen
