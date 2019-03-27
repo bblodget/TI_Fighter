@@ -3,9 +3,10 @@ FORGET -->>
 : -->> 0 EMIT [COMPILE] --> ; IMMEDIATE
 
 : Reload ( --)
-\ Reloads FIGHTER block file
-S" DSK3.FIGHTER" USE
-;
+    \ Reloads FIGHTER block file
+    S" DSK3.FIGHTER" USE
+    ;
+
 
    0 VALUE Column			\ used by DrawIt
    0 VALUE Row			\ used by DrawIt
@@ -24,6 +25,45 @@ HEX
    DATA 4 8080 8080 8080 807F 81 DCHAR
    DATA 4 FEA9 4101 0101 0101 82 DCHAR
    DATA 4 0101 0101 0101 01FE 83 DCHAR ;
+
+: LLineUDG ( --) \ Vertical line on left side
+   DATA 4 8080 8080 8080 8080 88 DCHAR ;
+
+: RLineUDG ( --) \ Vertical line on right side
+   DATA 4 0101 0101 0101 0101 89 DCHAR ;
+
+: BLineUDG ( --) \ Horizontal line on bottom side
+   DATA 4 0000 0000 0000 00FF 8A DCHAR ;
+
+: TLineUDG ( --) \ Horizontal line on top side
+   DATA 4 FF00 0000 0000 0000 8B DCHAR ;
+
+: LBLineUDG ( --) \ Lines on left and bottom
+   DATA 4 8080 8080 8080 80FF 8C DCHAR ;
+
+: RBLineUDG ( --) \ Lines on right and bottom
+   DATA 4 0101 0101 0101 01FF 8D DCHAR ;
+
+: LTLineUDG ( --) \ Lines on left and top
+   DATA 4 FF80 8080 8080 8080 8E DCHAR ;
+
+: RTLineUDG ( --) \ Lines on right and top
+   DATA 4 FF01 0101 0101 0101 8F DCHAR ;
+
+: LBTLineUDG ( --) \ Lines on left, bottom and top
+   DATA 4 FF80 8080 8080 80FF 90 DCHAR ;
+
+: RBTLineUDG ( --) \ Lines on right, bottom and top
+   DATA 4 FF01 0101 0101 01FF 91 DCHAR ;
+
+: BTLineUDG ( --) \ Lines on bottom and top
+   DATA 4 FF00 0000 0000 00FF 92 DCHAR ;
+
+: DiagUpUDG ( --) \ Diagonal from lower left to upper right
+   DATA 4 FFFE FCF8 F0E0 C080 98 DCHAR ;
+
+: DiagDownUDG ( --) \ Diagonal from upper right to lower left
+   DATA 4 FF7F 3F1F 0F07 0301 99 DCHAR ;
 
 : ManRight1 ( --) \ man facing right, frame #1
    DATA 4 0302 0201 0302 0607 100 DCHAR
@@ -63,27 +103,66 @@ DECIMAL
    1 GMODE FALSE SSCROLL !
    32 0 DO I 1 14 COLOR LOOP
    16 1 15 COLOR  	\ brick colour
-   BrickUDG ManRight1
+   17 1 8  COLOR  	\ shrine color
+   18 1 8  COLOR  	\ shrine color
+   19 8 14  COLOR  	\ shrine corner color
+   BrickUDG 
+   LLineUDG RLineUDG BLineUDG TLineUDG
+   LBLineUDG RBLineUDG LTLineUDG RTLineUDG
+   LBTLineUDG RBTLineUDG BTLineUDG 
+   DiagUpUDG DiagDownUDG
+   ManRight1
    ;
 
 : BrickRows ( --)
   \ draws rows of bricks at top and bottom of screen
-   0 TO Row 
-   2 0 DO 
+   0 TO Row
      0 TO Column
-     2 0 DO 
-     16 0 DO DrawBrick LOOP 
+     2 0 DO
+     16 0 DO DrawBrick LOOP
        2 +TO Row 0 TO Column
      LOOP 
      20 TO Row
    LOOP ;
 
+: ShintoShrine ( x y --) \ (x,y) upper left corner of shrine
+    \ draws the shrine
+    TO Column
+    TO Row
+
+    \ Top line of big beam
+    Column Row GOTOXY 142 EMIT
+    15 1 DO Column I + Row GOTOXY 139 EMIT LOOP
+    Column 15 + Row GOTOXY 143 EMIT
+
+    \ Bottom line of big beam
+    1 +TO Row
+    Column Row GOTOXY 153 EMIT 
+    15 1 DO Column I + Row GOTOXY 138 EMIT LOOP
+    Column 15 + Row GOTOXY 152 EMIT 
+
+    \ Left Beam
+    1 +TO Row
+    3 +TO Column
+    9 0 DO Column Row I + GOTOXY 136 EMIT 137 EMIT LOOP
+
+    \ Right Beam
+    8 +TO Column
+    9 0 DO Column Row I + GOTOXY 136 EMIT 137 EMIT LOOP
+
+    \ Small beam
+    -10 +TO Column
+    1 +TO Row
+    Column Row GOTOXY 144 EMIT
+    13 1 DO Column I + Row GOTOXY 146 EMIT LOOP
+    Column 13 + Row GOTOXY 145 EMIT
+    ;
+
 : Fighter ( --)
     \ entry point of game
     DefineGraphics BrickRows
+    9 7 ShintoShrine
     3 MAGNIFY
     ManSprite
     30 23 GOTOXY KEY DROP ;
-
-    
 
