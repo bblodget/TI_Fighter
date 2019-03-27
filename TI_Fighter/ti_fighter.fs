@@ -115,15 +115,14 @@ DECIMAL
    ;
 
 : BrickRows ( --)
-  \ draws rows of bricks at top and bottom of screen
-   0 TO Row
-     0 TO Column
-     2 0 DO
-     16 0 DO DrawBrick LOOP
+    \ draws rows of bricks at top and bottom of screen
+    0 TO Column
+    20 TO Row
+    2 0 DO
+    16 0 DO DrawBrick LOOP
        2 +TO Row 0 TO Column
-     LOOP 
-     20 TO Row
-   LOOP ;
+    LOOP
+    ;
 
 : ShintoShrine ( x y --) \ (x,y) upper left corner of shrine
     \ draws the shrine
