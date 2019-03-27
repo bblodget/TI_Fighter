@@ -160,7 +160,7 @@ DECIMAL
 : Fighter ( --)
     \ entry point of game
     DefineGraphics BrickRows
-    9 7 ShintoShrine
+    9 8 ShintoShrine
     3 MAGNIFY
     ManSprite
     30 23 GOTOXY KEY DROP ;
