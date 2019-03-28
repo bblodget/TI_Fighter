@@ -10,6 +10,10 @@ block_size = 1024
 block_inc = 64
 pos = 0;
 
+cont_line = "-->>"
+cont_line = "{:<64}".format(cont_line)
+cont_line =  cont_line.encode('utf-8')
+
 block_file_size = os.path.getsize(block_file)
 print("block_file_size: {}".format(block_file_size))
 
@@ -35,7 +39,7 @@ with open(source_file, 'r') as sf:
             # Add continuation -->> to next block on line 15
             if block_line == 15:
                 block_line = 0
-                bf.write(b"-->>")
+                bf.write(cont_line)
                 pos = pos + block_inc
                 bf.seek(pos)
             bf.write(bline)
