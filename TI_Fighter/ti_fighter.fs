@@ -10,13 +10,16 @@ FORGET -->>
 
    0 VALUE Column			\ used by DrawIt
    0 VALUE Row			\ used by DrawIt
+   0 VALUE AnimFrame			\ used Update
+   0 VALUE UpdateAnim?			\ used Update
+   0 VALUE Time			\ used Update
    1 CONSTANT Fire?		\ comparison check for fire button
    2 CONSTANT Left?		\ comparison check for left
    4 CONSTANT Right?		\ comparison check for right
    8 CONSTANT Down?		\ comparison check for down
   16 CONSTANT Up?			\ comparison check for up
   13 CONSTANT ENTER		\ key code for ENTER key
- 400 CONSTANT DelayTime	\ delay loop count
+ 300 CONSTANT DelayTime	\ delay loop count
 
 HEX
 \ user defined graphics
@@ -72,10 +75,10 @@ HEX
    DATA 4 40C0 4040 4040 4070 103 DCHAR ;
 
 : ManRight2 ( --) \ man facing right, frame #2
-   DATA 4 0101 0100 0306 0A07 100 DCHAR
-   DATA 4 0203 0202 0204 0406 101 DCHAR
-   DATA 4 8060 6080 C868 5040 102 DCHAR
-   DATA 4 40C0 4020 1010 101C 103 DCHAR ;
+   DATA 4 0101 0100 0306 0A07 104 DCHAR
+   DATA 4 0203 0202 0204 0406 105 DCHAR
+   DATA 4 8040 4080 C868 5040 106 DCHAR
+   DATA 4 40C0 4020 1010 101C 107 DCHAR ;
 
 DECIMAL
 
@@ -99,7 +102,8 @@ DECIMAL
     0 128 48 0 5 SPRITE ;
 
 : DefineGraphics ( --)
-  \ define the user defined graphics and set colours of character sets
+  \ define the user defined graphics 
+  \ and set colours of character sets
    1 GMODE FALSE SSCROLL !
    32 0 DO I 1 14 COLOR LOOP
    16 1 15 COLOR  	\ brick colour
@@ -111,7 +115,7 @@ DECIMAL
    LBLineUDG RBLineUDG LTLineUDG RTLineUDG
    LBTLineUDG RBTLineUDG BTLineUDG 
    DiagUpUDG DiagDownUDG
-   ManRight1
+   ManRight1 ManRight2
    ;
 
 : BrickRows ( --)
@@ -157,11 +161,73 @@ DECIMAL
     Column 13 + Row GOTOXY 145 EMIT
     ;
 
+: Delay ( delay--) 
+  \ simple delay loop
+   0 DO LOOP ;
+
+: ClrKey ( --)
+    \ Wait for no keypress and key? to return -1
+    BEGIN
+        -1 KEY? <> WHILE
+    REPEAT
+    ;
+
+: Update ( joy_stick_data --)
+    \ Update Time
+    1 +TO Time
+    \ Updates the sprites vector depending on joystick data
+    CASE
+        2 OF 
+            \ Left
+            0 0 -1 SPRVEC
+            TRUE TO UpdateAnim?
+        ENDOF
+        4 OF 
+            \ Right
+            0 0 1 SPRVEC
+            TRUE TO UpdateAnim?
+        ENDOF
+        \ Default
+        0 0 0 SPRVEC
+        FALSE TO UpdateAnim?
+    ENDCASE
+    \ Time elapse and need to update anim?
+    UpdateAnim? Time 10 MOD 0= AND IF
+        \ Swap anim panel
+        AnimFrame
+        CASE
+            0 OF
+                0 0 SPRPAT
+                1 TO AnimFrame
+            ENDOF
+            1 OF
+                0 4 SPRPAT
+                0 TO AnimFrame
+            ENDOF
+        ENDCASE
+    THEN
+    \ Move the sprites
+    0 4 SPRMOV
+    ;
+
+
+: MainLoop ( --)
+    \ Main game loop. Continue until key is pressed
+    BEGIN -1 KEY? = WHILE
+        0 JOYST
+        Update
+        DelayTime Delay
+    REPEAT
+    ;
+
 : Fighter ( --)
     \ entry point of game
     DefineGraphics BrickRows
     9 8 ShintoShrine
     3 MAGNIFY
     ManSprite
-    30 23 GOTOXY KEY DROP ;
+    30 23 GOTOXY
+    ClrKey
+    MainLoop
+    ;
 
