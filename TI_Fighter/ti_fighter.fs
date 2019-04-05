@@ -10,9 +10,14 @@ FORGET -->>
 
    0 VALUE Column			\ used by DrawIt
    0 VALUE Row			\ used by DrawIt
-   0 VALUE AnimFrame			\ used Update
-   0 VALUE UpdateAnim?			\ used Update
-   0 VALUE Time			\ used Update
+   \ 0 VALUE AnimFrame			\ used Update
+   \ 0 VALUE UpdateAnim?			\ used Update
+   0 VALUE Time			\ used MainLoop
+   \ 0 VALUE LeftManPat			\ used Update
+
+   0     VALUE CalcSprite			\ used by Calc
+   FALSE VALUE CalcFire			\ used by Calc
+
    1 CONSTANT Fire?		\ comparison check for fire button
    2 CONSTANT Left?		\ comparison check for left
    4 CONSTANT Right?		\ comparison check for right
@@ -20,6 +25,38 @@ FORGET -->>
   16 CONSTANT Up?			\ comparison check for up
   13 CONSTANT ENTER		\ key code for ENTER key
  300 CONSTANT DelayTime	\ delay loop count
+
+    \ Constants for kick state
+  -1 CONSTANT KICK_NONE
+  0  CONSTANT KICK_LEFT
+  1  CONSTANT KICK_RIGHT
+
+    \ kick state var
+ KICK_NONE VALUE KickState
+ 0         VALUE KickExpire  \ Time to stop the kick
+
+\ CalcObj : Current CalcObj
+0 VALUE CalcObj
+
+\ Calc constants, vars, and obj
+
+10 CONSTANT MAX_KICK_TIME
+1 CONSTANT FACE_LEFT
+2 CONSTANT FACE_RIGHT
+
+\ CalcObj0 : Holds data relating to sprite 0
+create (CalcObj0) 10 allot
+
+\ CalcObj1 : Holds data relating to sprite 1
+create (CalcObj1) 10 allot
+
+\ Constant Offsets into CalcObj (Fields)
+0 CONSTANT CALC_SPRITE
+2 CONSTANT CALC_KICK?
+4 CONSTANT CALC_KICK_TIME
+6 CONSTANT CALC_DIR
+
+
 
 HEX
 \ user defined graphics
@@ -68,17 +105,53 @@ HEX
 : DiagDownUDG ( --) \ Diagonal from upper right to lower left
    DATA 4 FF7F 3F1F 0F07 0301 99 DCHAR ;
 
+0 CONSTANT SPR_FACE_RIGHT1
+
 : ManRight1 ( --) \ man facing right, frame #1
    DATA 4 0302 0201 0302 0607 100 DCHAR
    DATA 4 0603 0202 0202 0203 101 DCHAR
    DATA 4 0080 8000 C048 6850 102 DCHAR
    DATA 4 40C0 4040 4040 4070 103 DCHAR ;
 
+4 CONSTANT SPR_FACE_RIGHT2
+
 : ManRight2 ( --) \ man facing right, frame #2
    DATA 4 0101 0100 0306 0A07 104 DCHAR
    DATA 4 0203 0202 0204 0406 105 DCHAR
    DATA 4 8040 4080 C868 5040 106 DCHAR
    DATA 4 40C0 4020 1010 101C 107 DCHAR ;
+
+8 CONSTANT SPR_FACE_LEFT1
+
+: ManLeft1 ( --) \ man facing left frame #1
+   DATA 4 0001 0100 0312 160A 108 DCHAR
+   DATA 4 0203 0202 0202 020F 109 DCHAR
+   DATA 4 C040 4080 C040 60E0 10A DCHAR
+   DATA 4 60C0 4040 4040 40C0 10B DCHAR ;
+
+C CONSTANT SPR_FACE_LEFT2
+
+: ManLeft2 ( --) \ man facing left frame #2
+   DATA 4 0102 0201 1316 0A02 10C DCHAR
+   DATA 4 0203 0204 0808 0838 10D DCHAR
+   DATA 4 8080 8000 C060 50E0 10E DCHAR
+   DATA 4 40C0 4040 4020 2060 10F DCHAR ;
+
+10 CONSTANT SPR_KICK_RIGHT
+
+: ManRightKick ( --) \ man facing right kicks
+   DATA 4 0101 0100 0306 0A12 110 DCHAR
+   DATA 4 1213 0202 0204 0406 111 DCHAR
+   DATA 4 8048 4989 D162 4448 112 DCHAR
+   DATA 4 50E0 0000 0000 0000 113 DCHAR ;
+
+14 CONSTANT SPR_KICK_LEFT
+
+: ManLeftKick ( --) \ man facing left kicks
+   DATA 4 0112 9291 8B46 2212 114 DCHAR
+   DATA 4 0A07 0000 0000 0000 115 DCHAR
+   DATA 4 8080 8000 C060 5048 116 DCHAR
+   DATA 4 48C8 4040 4020 2060 117 DCHAR ;
 
 DECIMAL
 
@@ -98,8 +171,25 @@ DECIMAL
 : DrawBrick ( --) \ draws a brick tile at Column & Row
    128 129 130 131 DrawIt ;
 
-: ManSprite ( --) \  Defines sprite 0
-    0 128 48 0 5 SPRITE ;
+: ManSprite0 ( --) \  Defines sprite 0
+    0 128 48 SPR_FACE_RIGHT1 5 SPRITE 
+
+    \ Init the CalcObj0
+    0 (CalcObj0) CALC_SPRITE + !
+    False (CalcObj0) CALC_KICK? + !
+    0 (CalcObj0) CALC_KICK_TIME + !
+    FACE_RIGHT (CalcObj0) CALC_DIR + !
+    ;
+
+: ManSprite1 ( --) \  Defines sprite 1
+    1 128 188 SPR_FACE_LEFT1 2 SPRITE 
+
+    \ Init the CalcObj1
+    1 (CalcObj1) CALC_SPRITE + !
+    False (CalcObj1) CALC_KICK? + !
+    0 (CalcObj1) CALC_KICK_TIME + !
+    FACE_LEFT (CalcObj1) CALC_DIR + !
+    ;
 
 : DefineGraphics ( --)
   \ define the user defined graphics 
@@ -116,6 +206,8 @@ DECIMAL
    LBTLineUDG RBTLineUDG BTLineUDG 
    DiagUpUDG DiagDownUDG
    ManRight1 ManRight2
+   ManLeft1 ManLeft2
+   ManRightKick ManLeftKick
    ;
 
 : BrickRows ( --)
@@ -172,41 +264,61 @@ DECIMAL
     REPEAT
     ;
 
-: Update ( joy_stick_data --)
-    \ Update Time
-    1 +TO Time
-    \ Updates the sprites vector depending on joystick data
+: Calc ( joy_stick_data calc_obj --)
+    \ Save addr of calc_obj
+    TO CalcObj
+
+    \ Get joy_stick_data, calc SPRVEC
     CASE
-        2 OF 
-            \ Left
-            0 0 -1 SPRVEC
-            TRUE TO UpdateAnim?
-        ENDOF
-        4 OF 
-            \ Right
-            0 0 1 SPRVEC
-            TRUE TO UpdateAnim?
+        1 OF
+            \ Fire (Kick)
+            \ ." K "
+            True CalcObj CALC_KICK? + !
+            0 CalcObj CALC_KICK_TIME + !
+            0 0 0 SPRVEC    \ Stop movement
         ENDOF
         \ Default
         0 0 0 SPRVEC
-        FALSE TO UpdateAnim?
     ENDCASE
-    \ Time elapse and need to update anim?
-    UpdateAnim? Time 10 MOD 0= AND IF
-        \ Swap anim panel
-        AnimFrame
-        CASE
-            0 OF
-                0 0 SPRPAT
-                1 TO AnimFrame
-            ENDOF
-            1 OF
-                0 4 SPRPAT
-                0 TO AnimFrame
-            ENDOF
-        ENDCASE
+
+    \ Check if Kick has timed out
+    CalcObj CALC_KICK? + @
+    IF
+        \ Kick in progress
+        \ Inc the KICK_TIME
+        1 CalcObj CALC_KICK_TIME + +!
+        CalcObj CALC_KICK_TIME + @ MAX_KICK_TIME = 
+        IF
+            \ Kick has timed out
+            False CalcObj CALC_KICK? + !
+        THEN
     THEN
-    \ Move the sprites
+
+    \ Set the correct Sprite
+    CalcObj CALC_KICK? + @
+    IF
+        \ Kicking
+        CalcObj CALC_DIR + @ FACE_LEFT =
+        IF
+            \ Kick Left
+            CalcObj @ SPR_KICK_LEFT SPRPAT
+        ELSE
+            \ Kick Right
+            CalcObj @ SPR_KICK_RIGHT SPRPAT
+        THEN
+    ELSE
+        \ Not Kicking
+        CalcObj CALC_DIR + @ FACE_LEFT =
+        IF
+            \ Facing Left
+            CalcObj @ SPR_FACE_LEFT1 SPRPAT
+        ELSE
+            \ Facing Right
+            CalcObj @ SPR_FACE_RIGHT1 SPRPAT
+        THEN
+    THEN
+
+    \  Move the sprites
     0 4 SPRMOV
     ;
 
@@ -214,9 +326,35 @@ DECIMAL
 : MainLoop ( --)
     \ Main game loop. Continue until key is pressed
     BEGIN -1 KEY? = WHILE
+        \ Update Time
+        1 +TO Time
+
+        \ Get joystick data
+        1 JOYST
         0 JOYST
-        Update
+
+        \ Calc new sprites and positions
+        (CalcObj0) Calc
+        (CalcObj1) Calc
+
+        \ Sleep for a bit
         DelayTime Delay
+    REPEAT
+    ;
+
+: JTest0 ( --)
+    ClrKey
+    BEGIN -1 KEY? = 
+    WHILE
+        0 JOYST .
+    REPEAT
+    ;
+
+: JTest1 ( --)
+    ClrKey
+    BEGIN -1 KEY? = 
+    WHILE
+        1 JOYST .
     REPEAT
     ;
 
@@ -225,7 +363,8 @@ DECIMAL
     DefineGraphics BrickRows
     9 8 ShintoShrine
     3 MAGNIFY
-    ManSprite
+    ManSprite0
+    ManSprite1
     30 23 GOTOXY
     ClrKey
     MainLoop
