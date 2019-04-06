@@ -272,6 +272,30 @@ DECIMAL
     THEN
     ;
 
+: MoveLeft ( --)
+    \ Handle joystick moving left
+    \ Called from Calc
+    CalcObj CALC_KICK? + not
+    IF
+        \ If not kicking
+        CalcObj @ 0 -1 SPRVEC    \ Move left
+        FACE_LEFT CalcObj CALC_DIR + !
+        IncMoveTime
+    THEN
+    ;
+
+: MoveRight ( --)
+    \ Handle joystick moving right
+    \ Called from Calc
+    CalcObj CALC_KICK? + not
+    IF
+        \ If not kicking
+        CalcObj @ 0 1 SPRVEC    \ Move right
+        FACE_RIGHT CalcObj CALC_DIR + !
+        IncMoveTime
+    THEN
+    ;
+
 : Calc ( joy_stick_data calc_obj --)
     \ Save addr of calc_obj
     TO CalcObj
@@ -285,24 +309,22 @@ DECIMAL
             CalcObj @ 0 0 SPRVEC    \ Stop movement
         ENDOF
         Left? OF
-            \ Left
-            CalcObj CALC_KICK? + not
-            IF
-                \ If not kicking
-                CalcObj @ 0 -1 SPRVEC    \ Move left
-                FACE_LEFT CalcObj CALC_DIR + !
-                IncMoveTime
-            THEN
+            MoveLeft
+        ENDOF
+        LEFT? DOWN? + OF
+            MoveLeft
+        ENDOF
+        LEFT? UP? + OF
+            MoveLeft
         ENDOF
         Right? OF
-            \ Right
-            CalcObj CALC_KICK? + not
-            IF
-                \ If not kicking
-                CalcObj @ 0 1 SPRVEC    \ Move right
-                FACE_RIGHT CalcObj CALC_DIR + !
-                IncMoveTime
-            THEN
+            MoveRight
+        ENDOF
+        Right? DOWN? + OF
+            MoveRight
+        ENDOF
+        Right? UP? + OF
+            MoveRight
         ENDOF
 
         \ Default
