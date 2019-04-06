@@ -10,13 +10,7 @@ FORGET -->>
 
    0 VALUE Column			\ used by DrawIt
    0 VALUE Row			\ used by DrawIt
-   \ 0 VALUE AnimFrame			\ used Update
-   \ 0 VALUE UpdateAnim?			\ used Update
-   0 VALUE Time			\ used MainLoop
    \ 0 VALUE LeftManPat			\ used Update
-
-   0     VALUE CalcSprite			\ used by Calc
-   FALSE VALUE CalcFire			\ used by Calc
 
    1 CONSTANT Fire?		\ comparison check for fire button
    2 CONSTANT Left?		\ comparison check for left
@@ -25,15 +19,6 @@ FORGET -->>
   16 CONSTANT Up?			\ comparison check for up
   13 CONSTANT ENTER		\ key code for ENTER key
  300 CONSTANT DelayTime	\ delay loop count
-
-    \ Constants for kick state
-  -1 CONSTANT KICK_NONE
-  0  CONSTANT KICK_LEFT
-  1  CONSTANT KICK_RIGHT
-
-    \ kick state var
- KICK_NONE VALUE KickState
- 0         VALUE KickExpire  \ Time to stop the kick
 
 \ CalcObj : Current CalcObj
 0 VALUE CalcObj
@@ -175,7 +160,7 @@ DECIMAL
    128 129 130 131 DrawIt ;
 
 : ManSprite0 ( --) \  Defines sprite 0
-    0 128 48 SPR_FACE_RIGHT1 5 SPRITE 
+    0 128 24 SPR_FACE_RIGHT1 5 SPRITE 
 
     \ Init the CalcObj0
     0 (CalcObj0) CALC_SPRITE + !
@@ -187,7 +172,7 @@ DECIMAL
     ;
 
 : ManSprite1 ( --) \  Defines sprite 1
-    1 128 188 SPR_FACE_LEFT1 2 SPRITE 
+    1 128 200 SPR_FACE_LEFT1 2 SPRITE 
 
     \ Init the CalcObj1
     1 (CalcObj1) CALC_SPRITE + !
@@ -293,13 +278,13 @@ DECIMAL
 
     \ Get joy_stick_data, calc SPRVEC
     CASE
-        1 OF
+        Fire? OF
             \ Fire (Kick)
             True CalcObj CALC_KICK? + !
             0 CalcObj CALC_KICK_TIME + !
             CalcObj @ 0 0 SPRVEC    \ Stop movement
         ENDOF
-        2 OF
+        Left? OF
             \ Left
             CalcObj CALC_KICK? + not
             IF
@@ -309,7 +294,7 @@ DECIMAL
                 IncMoveTime
             THEN
         ENDOF
-        4 OF
+        Right? OF
             \ Right
             CalcObj CALC_KICK? + not
             IF
@@ -379,9 +364,6 @@ DECIMAL
 : MainLoop ( --)
     \ Main game loop. Continue until key is pressed
     BEGIN -1 KEY? = WHILE
-        \ Update Time
-        1 +TO Time
-
         \ Get joystick data
         1 JOYST
         0 JOYST
@@ -392,22 +374,6 @@ DECIMAL
 
         \ Sleep for a bit
         DelayTime Delay
-    REPEAT
-    ;
-
-: JTest0 ( --)
-    ClrKey
-    BEGIN -1 KEY? = 
-    WHILE
-        0 JOYST .
-    REPEAT
-    ;
-
-: JTest1 ( --)
-    ClrKey
-    BEGIN -1 KEY? = 
-    WHILE
-        1 JOYST .
     REPEAT
     ;
 
