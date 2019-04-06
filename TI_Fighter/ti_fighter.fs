@@ -31,10 +31,10 @@ FORGET -->>
 2   CONSTANT FACE_RIGHT
 
 \ CalcObj0 : Holds data relating to sprite 0
-create (CalcObj0) 10 allot
+create (CalcObj0) 12 allot
 
 \ CalcObj1 : Holds data relating to sprite 1
-create (CalcObj1) 10 allot
+create (CalcObj1) 12 allot
 
 \ Constant Offsets into CalcObj (Fields)
 0   CONSTANT CALC_SPRITE
@@ -160,7 +160,7 @@ DECIMAL
    128 129 130 131 DrawIt ;
 
 : ManSprite0 ( --) \  Defines sprite 0
-    0 128 24 SPR_FACE_RIGHT1 5 SPRITE 
+    0 128 24 SPR_FACE_RIGHT1 5 SPRITE
 
     \ Init the CalcObj0
     0 (CalcObj0) CALC_SPRITE + !
