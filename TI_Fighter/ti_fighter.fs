@@ -40,9 +40,10 @@ FORGET -->>
 
 \ Calc constants, vars, and obj
 
-10 CONSTANT MAX_KICK_TIME
-1 CONSTANT FACE_LEFT
-2 CONSTANT FACE_RIGHT
+8   CONSTANT MAX_KICK_TIME
+8   CONSTANT MOD_MOVE_TIME
+1   CONSTANT FACE_LEFT
+2   CONSTANT FACE_RIGHT
 
 \ CalcObj0 : Holds data relating to sprite 0
 create (CalcObj0) 10 allot
@@ -51,10 +52,12 @@ create (CalcObj0) 10 allot
 create (CalcObj1) 10 allot
 
 \ Constant Offsets into CalcObj (Fields)
-0 CONSTANT CALC_SPRITE
-2 CONSTANT CALC_KICK?
-4 CONSTANT CALC_KICK_TIME
-6 CONSTANT CALC_DIR
+0   CONSTANT CALC_SPRITE
+2   CONSTANT CALC_KICK?
+4   CONSTANT CALC_KICK_TIME
+6   CONSTANT CALC_DIR
+8   CONSTANT CALC_ANIM_FRAME
+10  CONSTANT CALC_MOVE_TIME
 
 
 
@@ -179,6 +182,8 @@ DECIMAL
     False (CalcObj0) CALC_KICK? + !
     0 (CalcObj0) CALC_KICK_TIME + !
     FACE_RIGHT (CalcObj0) CALC_DIR + !
+    0 (CalcObj0) CALC_ANIM_FRAME + !
+    0 (CalcObj0) CALC_MOVE_TIME + !
     ;
 
 : ManSprite1 ( --) \  Defines sprite 1
@@ -189,6 +194,8 @@ DECIMAL
     False (CalcObj1) CALC_KICK? + !
     0 (CalcObj1) CALC_KICK_TIME + !
     FACE_LEFT (CalcObj1) CALC_DIR + !
+    0 (CalcObj1) CALC_ANIM_FRAME + !
+    0 (CalcObj1) CALC_MOVE_TIME + !
     ;
 
 : DefineGraphics ( --)
@@ -264,6 +271,22 @@ DECIMAL
     REPEAT
     ;
 
+: IncMoveTime ( --)
+    \ Increments the CALC_MOVE_TIME of current CalcObj
+    \ Called from Calc
+    1 CalcObj CALC_MOVE_TIME + +!
+    CalcObj CALC_MOVE_TIME + @ MOD_MOVE_TIME MOD 0=
+    IF
+        \ Change the animation frame
+        CalcObj CALC_ANIM_FRAME + @ 0=
+        IF
+            1 CalcObj CALC_ANIM_FRAME + !
+        ELSE
+            0 CalcObj CALC_ANIM_FRAME + !
+        THEN
+    THEN
+    ;
+
 : Calc ( joy_stick_data calc_obj --)
     \ Save addr of calc_obj
     TO CalcObj
@@ -283,6 +306,7 @@ DECIMAL
                 \ If not kicking
                 CalcObj @ 0 -1 SPRVEC    \ Move left
                 FACE_LEFT CalcObj CALC_DIR + !
+                IncMoveTime
             THEN
         ENDOF
         4 OF
@@ -292,6 +316,7 @@ DECIMAL
                 \ If not kicking
                 CalcObj @ 0 1 SPRVEC    \ Move right
                 FACE_RIGHT CalcObj CALC_DIR + !
+                IncMoveTime
             THEN
         ENDOF
 
@@ -329,10 +354,20 @@ DECIMAL
         CalcObj CALC_DIR + @ FACE_LEFT =
         IF
             \ Facing Left
-            CalcObj @ SPR_FACE_LEFT1 SPRPAT
+            CalcObj CALC_ANIM_FRAME + @ 0=
+            IF
+                CalcObj @ SPR_FACE_LEFT1 SPRPAT
+            ELSE
+                CalcObj @ SPR_FACE_LEFT2 SPRPAT
+            THEN
         ELSE
             \ Facing Right
-            CalcObj @ SPR_FACE_RIGHT1 SPRPAT
+            CalcObj CALC_ANIM_FRAME + @ 0=
+            IF
+                CalcObj @ SPR_FACE_RIGHT1 SPRPAT
+            ELSE
+                CalcObj @ SPR_FACE_RIGHT2 SPRPAT
+            THEN
         THEN
     THEN
 
