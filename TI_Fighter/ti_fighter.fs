@@ -272,13 +272,31 @@ DECIMAL
     CASE
         1 OF
             \ Fire (Kick)
-            \ ." K "
             True CalcObj CALC_KICK? + !
             0 CalcObj CALC_KICK_TIME + !
-            0 0 0 SPRVEC    \ Stop movement
+            CalcObj @ 0 0 SPRVEC    \ Stop movement
         ENDOF
+        2 OF
+            \ Left
+            CalcObj CALC_KICK? + not
+            IF
+                \ If not kicking
+                CalcObj @ 0 -1 SPRVEC    \ Move left
+                FACE_LEFT CalcObj CALC_DIR + !
+            THEN
+        ENDOF
+        4 OF
+            \ Right
+            CalcObj CALC_KICK? + not
+            IF
+                \ If not kicking
+                CalcObj @ 0 1 SPRVEC    \ Move right
+                FACE_RIGHT CalcObj CALC_DIR + !
+            THEN
+        ENDOF
+
         \ Default
-        0 0 0 SPRVEC
+        CalcObj @ 0 0 SPRVEC \ Stop moving
     ENDCASE
 
     \ Check if Kick has timed out
@@ -287,7 +305,7 @@ DECIMAL
         \ Kick in progress
         \ Inc the KICK_TIME
         1 CalcObj CALC_KICK_TIME + +!
-        CalcObj CALC_KICK_TIME + @ MAX_KICK_TIME = 
+        CalcObj CALC_KICK_TIME + @ MAX_KICK_TIME >=
         IF
             \ Kick has timed out
             False CalcObj CALC_KICK? + !
