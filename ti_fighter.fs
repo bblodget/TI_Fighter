@@ -29,6 +29,7 @@ FORGET -->>
 8   CONSTANT MOD_MOVE_TIME
 1   CONSTANT FACE_LEFT
 2   CONSTANT FACE_RIGHT
+20  CONSTANT COINC_TOLERANCE
 
 \ CalcObj0 : Holds data relating to sprite 0
 create (CalcObj0) 14 allot
@@ -377,9 +378,57 @@ DECIMAL
         THEN
     THEN
 
-    \  Move the sprites
-    0 4 SPRMOV
     ;
+
+: CheckCollision ( --)
+    COINC_TOLERANCE 0 1 COINC
+    IF
+        \ Collision.  
+        0 0 0 SPRVEC \ Stop moving
+        1 0 0 SPRVEC \ Stop moving
+
+        \ Check if sprite zero is kicking
+        (CalcObj0) CALC_KICK? + @
+        IF
+            (CalcObj0) CALC_DIR + @ FACE_LEFT = \ kicker is facing left
+            1 SPRLOC? SWAP DROP 0 SPRLOC? SWAP DROP < \ kickie is to the left of kicker
+            AND
+            IF
+                \ send sprite 1 flying to the left
+                1 0 -25 SPRVEC \ Move left
+            ELSE
+            (CalcObj0) CALC_DIR + @ FACE_RIGHT = \ kicker is facing right
+            1 SPRLOC? SWAP DROP 0 SPRLOC? SWAP DROP > \ kickie is to the right of kicker
+            AND
+            IF
+                \ send sprite 1 flying to the right
+                1 0 25 SPRVEC \ Move right
+            THEN
+            THEN
+        THEN
+
+        \ Check if sprite one is kicking
+        (CalcObj1) CALC_KICK? + @
+        IF
+            (CalcObj1) CALC_DIR + @ FACE_LEFT = \ kicker is facing left
+            0 SPRLOC? SWAP DROP 1 SPRLOC? SWAP DROP < \ kickie is to the left of kicker
+            AND
+            IF
+                \ send sprite 0 flying to the left
+                0 0 -25 SPRVEC \ Move left
+            ELSE
+            (CalcObj1) CALC_DIR + @ FACE_RIGHT = \ kicker is facing right
+            0 SPRLOC? SWAP DROP 1 SPRLOC? SWAP DROP > \ kickie is to the right of kicker
+            AND
+            IF
+                \ send sprite 0 flying to the right
+                0 0 25 SPRVEC \ Move right
+            THEN
+            THEN
+        THEN
+
+    THEN
+;
 
 
 : MainLoop ( --)
@@ -392,6 +441,12 @@ DECIMAL
         \ Calc new sprites and positions
         (CalcObj0) Calc
         (CalcObj1) Calc
+
+        \ Check collision
+        CheckCollision
+
+        \  Move the sprites
+        0 4 SPRMOV
 
         \ Sleep for a bit
         DelayTime Delay
