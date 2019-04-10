@@ -31,10 +31,10 @@ FORGET -->>
 2   CONSTANT FACE_RIGHT
 
 \ CalcObj0 : Holds data relating to sprite 0
-create (CalcObj0) 12 allot
+create (CalcObj0) 14 allot
 
 \ CalcObj1 : Holds data relating to sprite 1
-create (CalcObj1) 12 allot
+create (CalcObj1) 14 allot
 
 \ Constant Offsets into CalcObj (Fields)
 0   CONSTANT CALC_SPRITE
@@ -43,6 +43,7 @@ create (CalcObj1) 12 allot
 6   CONSTANT CALC_DIR
 8   CONSTANT CALC_ANIM_FRAME
 10  CONSTANT CALC_MOVE_TIME
+12  CONSTANT CALC_PREV_JOYST
 
 
 
@@ -169,6 +170,7 @@ DECIMAL
     FACE_RIGHT (CalcObj0) CALC_DIR + !
     0 (CalcObj0) CALC_ANIM_FRAME + !
     0 (CalcObj0) CALC_MOVE_TIME + !
+    0 (CalcObj0) CALC_PREV_JOYST + !
     ;
 
 : ManSprite1 ( --) \  Defines sprite 1
@@ -181,6 +183,7 @@ DECIMAL
     FACE_LEFT (CalcObj1) CALC_DIR + !
     0 (CalcObj1) CALC_ANIM_FRAME + !
     0 (CalcObj1) CALC_MOVE_TIME + !
+    0 (CalcObj1) CALC_PREV_JOYST + !
     ;
 
 : DefineGraphics ( --)
@@ -301,35 +304,28 @@ DECIMAL
     TO CalcObj
 
     \ Get joy_stick_data, calc SPRVEC
-    CASE
-        Fire? OF
-            \ Fire (Kick)
-            True CalcObj CALC_KICK? + !
-            0 CalcObj CALC_KICK_TIME + !
-            CalcObj @ 0 0 SPRVEC    \ Stop movement
-        ENDOF
-        Left? OF
-            MoveLeft
-        ENDOF
-        LEFT? DOWN? + OF
-            MoveLeft
-        ENDOF
-        LEFT? UP? + OF
-            MoveLeft
-        ENDOF
-        Right? OF
-            MoveRight
-        ENDOF
-        Right? DOWN? + OF
-            MoveRight
-        ENDOF
-        Right? UP? + OF
-            MoveRight
-        ENDOF
-
+    DUP Fire? AND Fire? =
+    CalcObj CALC_PREV_JOYST + @ Fire? AND Fire? <>
+    AND
+    IF
+        \ Fire (Kick) button is pressed 
+        True CalcObj CALC_KICK? + !
+        0 CalcObj CALC_KICK_TIME + !
+        CalcObj @ 0 0 SPRVEC    \ Stop movement
+    ELSE DUP Left? AND Left? =
+    IF
+        MoveLeft
+    ELSE DUP Right? AND Right? =
+    IF
+        MoveRight
+    ELSE
         \ Default
         CalcObj @ 0 0 SPRVEC \ Stop moving
-    ENDCASE
+    THEN THEN THEN
+
+    \ Save joyst value
+    CalcObj CALC_PREV_JOYST + !
+
 
     \ Check if Kick has timed out
     CalcObj CALC_KICK? + @
@@ -341,6 +337,9 @@ DECIMAL
         IF
             \ Kick has timed out
             False CalcObj CALC_KICK? + !
+        ELSE
+            \ Stop while kicking
+            CalcObj @ 0 0 SPRVEC    \ Stop movement
         THEN
     THEN
 
