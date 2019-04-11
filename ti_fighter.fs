@@ -37,10 +37,10 @@ FORGET -->>
 20  CONSTANT COINC_TOLERANCE
 
 \ Player1 : Holds data relating to sprite 0
-create (Player1) 18 allot
+create (Player1) 20 allot
 
 \ Player2 : Holds data relating to sprite 1
-create (Player2) 18 allot
+create (Player2) 20 allot
 
 \ Constant Offsets into PlayerObj (Fields)
 0   CONSTANT CALC_SPRITE
@@ -52,6 +52,7 @@ create (Player2) 18 allot
 12  CONSTANT CALC_PREV_JOYST
 14  CONSTANT CALC_OPP_SPR
 16  CONSTANT CALC_POWER_CHAR
+18  CONSTANT CALC_POWER
 
 
 
@@ -103,10 +104,12 @@ HEX
    DATA 4 FF7F 3F1F 0F07 0301 99 DCHAR ;
 
 : P1BoxUDG ( --) \ Player 1 square for strength indicator. Color set 20
-   DATA 4 FFFF FFFF FFFF FFFF A0 DCHAR ;
+   DATA 4 FFFF FFFF FFFF FFFF A0 DCHAR 
+   DATA 4 0000 0000 0000 0000 A1 DCHAR ;
 
 : P2BoxUDG ( --) \ Player2 square for strength indicator. Color set 21
-   DATA 4 FFFF FFFF FFFF FFFF A8 DCHAR ;
+   DATA 4 FFFF FFFF FFFF FFFF A8 DCHAR 
+   DATA 4 0000 0000 0000 0000 A9 DCHAR ;
 
 0 CONSTANT SPR_FACE_RIGHT1
 
@@ -187,6 +190,7 @@ DECIMAL
     0 (Player1) CALC_PREV_JOYST + !
     1 (Player1) CALC_OPP_SPR + !
     160 (Player1) CALC_POWER_CHAR + !
+    10 (Player1) CALC_POWER + !
     ;
 
 : P2Sprite ( --) \  Defines sprite 1
@@ -202,6 +206,7 @@ DECIMAL
     0 (Player2) CALC_PREV_JOYST + !
     0 (Player2) CALC_OPP_SPR + !
     168 (Player2) CALC_POWER_CHAR + !
+    10 (Player2) CALC_POWER + !
     ;
 
 : DefineGraphics ( --)
@@ -236,8 +241,17 @@ DECIMAL
     LOOP
     ;
 
-: PowerLevel (  player_obj x y --)
+: PowerLevel (  x y player_obj --)
     \ (x,y) upper left corner of power level display
+    TO PlayerObj
+    TO Row
+    TO Column
+
+    Column Row GOTOXY
+    10 0 
+    DO
+        PlayerObj CALC_POWER_CHAR + @ EMIT
+    LOOP
     ;
 
 : ShintoShrine ( x y --) \ (x,y) upper left corner of shrine
@@ -486,6 +500,8 @@ DECIMAL
     3 MAGNIFY
     P1Sprite
     P2Sprite
+    3 3 (Player1) PowerLevel
+    19 3 (Player2) PowerLevel
     30 23 GOTOXY
     ClrKey
     MainLoop
