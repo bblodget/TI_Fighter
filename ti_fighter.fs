@@ -19,8 +19,8 @@ FORGET -->>
   13 CONSTANT ENTER		\ key code for ENTER key
  300 CONSTANT DelayTime	\ delay loop count
 
-\ CalcObj : Current CalcObj
-0 VALUE CalcObj
+\ PlayerObj : Current PlayerObj
+0 VALUE PlayerObj
 
 \ Sprite number of the kicking sprite
 0 VALUE Kicker
@@ -36,13 +36,13 @@ FORGET -->>
 2   CONSTANT FACE_RIGHT
 20  CONSTANT COINC_TOLERANCE
 
-\ CalcObj0 : Holds data relating to sprite 0
-create (CalcObj0) 16 allot
+\ Player1 : Holds data relating to sprite 0
+create (Player1) 18 allot
 
-\ CalcObj1 : Holds data relating to sprite 1
-create (CalcObj1) 16 allot
+\ Player2 : Holds data relating to sprite 1
+create (Player2) 18 allot
 
-\ Constant Offsets into CalcObj (Fields)
+\ Constant Offsets into PlayerObj (Fields)
 0   CONSTANT CALC_SPRITE
 2   CONSTANT CALC_KICK?
 4   CONSTANT CALC_KICK_TIME
@@ -51,6 +51,7 @@ create (CalcObj1) 16 allot
 10  CONSTANT CALC_MOVE_TIME
 12  CONSTANT CALC_PREV_JOYST
 14  CONSTANT CALC_OPP_SPR
+16  CONSTANT CALC_POWER_CHAR
 
 
 
@@ -176,29 +177,31 @@ DECIMAL
 : P1Sprite ( --) \  Defines sprite 0
     0 128 24 SPR_FACE_RIGHT1 5 SPRITE
 
-    \ Init the CalcObj0
-    0 (CalcObj0) CALC_SPRITE + !
-    False (CalcObj0) CALC_KICK? + !
-    0 (CalcObj0) CALC_KICK_TIME + !
-    FACE_RIGHT (CalcObj0) CALC_DIR + !
-    0 (CalcObj0) CALC_ANIM_FRAME + !
-    0 (CalcObj0) CALC_MOVE_TIME + !
-    0 (CalcObj0) CALC_PREV_JOYST + !
-    1 (CalcObj0) CALC_OPP_SPR + !
+    \ Init the Player1
+    0 (Player1) CALC_SPRITE + !
+    False (Player1) CALC_KICK? + !
+    0 (Player1) CALC_KICK_TIME + !
+    FACE_RIGHT (Player1) CALC_DIR + !
+    0 (Player1) CALC_ANIM_FRAME + !
+    0 (Player1) CALC_MOVE_TIME + !
+    0 (Player1) CALC_PREV_JOYST + !
+    1 (Player1) CALC_OPP_SPR + !
+    160 (Player1) CALC_POWER_CHAR + !
     ;
 
 : P2Sprite ( --) \  Defines sprite 1
     1 128 200 SPR_FACE_LEFT1 2 SPRITE 
 
-    \ Init the CalcObj1
-    1 (CalcObj1) CALC_SPRITE + !
-    False (CalcObj1) CALC_KICK? + !
-    0 (CalcObj1) CALC_KICK_TIME + !
-    FACE_LEFT (CalcObj1) CALC_DIR + !
-    0 (CalcObj1) CALC_ANIM_FRAME + !
-    0 (CalcObj1) CALC_MOVE_TIME + !
-    0 (CalcObj1) CALC_PREV_JOYST + !
-    0 (CalcObj1) CALC_OPP_SPR + !
+    \ Init the Player2
+    1 (Player2) CALC_SPRITE + !
+    False (Player2) CALC_KICK? + !
+    0 (Player2) CALC_KICK_TIME + !
+    FACE_LEFT (Player2) CALC_DIR + !
+    0 (Player2) CALC_ANIM_FRAME + !
+    0 (Player2) CALC_MOVE_TIME + !
+    0 (Player2) CALC_PREV_JOYST + !
+    0 (Player2) CALC_OPP_SPR + !
+    168 (Player2) CALC_POWER_CHAR + !
     ;
 
 : DefineGraphics ( --)
@@ -231,6 +234,10 @@ DECIMAL
     16 0 DO DrawBrick LOOP
        2 +TO Row 0 TO Column
     LOOP
+    ;
+
+: PowerLevel (  player_obj x y --)
+    \ (x,y) upper left corner of power level display
     ;
 
 : ShintoShrine ( x y --) \ (x,y) upper left corner of shrine
@@ -278,17 +285,17 @@ DECIMAL
     ;
 
 : IncMoveTime ( --)
-    \ Increments the CALC_MOVE_TIME of current CalcObj
+    \ Increments the CALC_MOVE_TIME of current PlayerObj
     \ Called from Calc
-    1 CalcObj CALC_MOVE_TIME + +!
-    CalcObj CALC_MOVE_TIME + @ MOD_MOVE_TIME MOD 0=
+    1 PlayerObj CALC_MOVE_TIME + +!
+    PlayerObj CALC_MOVE_TIME + @ MOD_MOVE_TIME MOD 0=
     IF
         \ Change the animation frame
-        CalcObj CALC_ANIM_FRAME + @ 0=
+        PlayerObj CALC_ANIM_FRAME + @ 0=
         IF
-            1 CalcObj CALC_ANIM_FRAME + !
+            1 PlayerObj CALC_ANIM_FRAME + !
         ELSE
-            0 CalcObj CALC_ANIM_FRAME + !
+            0 PlayerObj CALC_ANIM_FRAME + !
         THEN
     THEN
     ;
@@ -296,11 +303,11 @@ DECIMAL
 : MoveLeft ( --)
     \ Handle joystick moving left
     \ Called from Calc
-    CalcObj CALC_KICK? + not
+    PlayerObj CALC_KICK? + not
     IF
         \ If not kicking
-        CalcObj @ 0 -1 SPRVEC    \ Move left
-        FACE_LEFT CalcObj CALC_DIR + !
+        PlayerObj @ 0 -1 SPRVEC    \ Move left
+        FACE_LEFT PlayerObj CALC_DIR + !
         IncMoveTime
     THEN
     ;
@@ -308,28 +315,28 @@ DECIMAL
 : MoveRight ( --)
     \ Handle joystick moving right
     \ Called from Calc
-    CalcObj CALC_KICK? + not
+    PlayerObj CALC_KICK? + not
     IF
         \ If not kicking
-        CalcObj @ 0 1 SPRVEC    \ Move right
-        FACE_RIGHT CalcObj CALC_DIR + !
+        PlayerObj @ 0 1 SPRVEC    \ Move right
+        FACE_RIGHT PlayerObj CALC_DIR + !
         IncMoveTime
     THEN
     ;
 
-: Calc ( joy_stick_data calc_obj --)
-    \ Save addr of calc_obj
-    TO CalcObj
+: Calc ( joy_stick_data player_obj --)
+    \ Save addr of player_obj
+    TO PlayerObj
 
     \ Get joy_stick_data, calc SPRVEC
     DUP Fire? AND Fire? =
-    CalcObj CALC_PREV_JOYST + @ Fire? AND Fire? <>
+    PlayerObj CALC_PREV_JOYST + @ Fire? AND Fire? <>
     AND
     IF
         \ Fire (Kick) button is pressed 
-        True CalcObj CALC_KICK? + !
-        0 CalcObj CALC_KICK_TIME + !
-        CalcObj @ 0 0 SPRVEC    \ Stop movement
+        True PlayerObj CALC_KICK? + !
+        0 PlayerObj CALC_KICK_TIME + !
+        PlayerObj @ 0 0 SPRVEC    \ Stop movement
     ELSE DUP Left? AND Left? =
     IF
         MoveLeft
@@ -338,74 +345,74 @@ DECIMAL
         MoveRight
     ELSE
         \ Default
-        CalcObj @ 0 0 SPRVEC \ Stop moving
+        PlayerObj @ 0 0 SPRVEC \ Stop moving
     THEN THEN THEN
 
     \ Save joyst value
-    CalcObj CALC_PREV_JOYST + !
+    PlayerObj CALC_PREV_JOYST + !
 
 
     \ Check if Kick has timed out
-    CalcObj CALC_KICK? + @
+    PlayerObj CALC_KICK? + @
     IF
         \ Kick in progress
         \ Inc the KICK_TIME
-        1 CalcObj CALC_KICK_TIME + +!
-        CalcObj CALC_KICK_TIME + @ MAX_KICK_TIME >=
+        1 PlayerObj CALC_KICK_TIME + +!
+        PlayerObj CALC_KICK_TIME + @ MAX_KICK_TIME >=
         IF
             \ Kick has timed out
-            False CalcObj CALC_KICK? + !
+            False PlayerObj CALC_KICK? + !
         ELSE
             \ Stop while kicking
-            CalcObj @ 0 0 SPRVEC    \ Stop movement
+            PlayerObj @ 0 0 SPRVEC    \ Stop movement
         THEN
     THEN
 
     \ Set the correct Sprite
-    CalcObj CALC_KICK? + @
+    PlayerObj CALC_KICK? + @
     IF
         \ Kicking
-        CalcObj CALC_DIR + @ FACE_LEFT =
+        PlayerObj CALC_DIR + @ FACE_LEFT =
         IF
             \ Kick Left
-            CalcObj @ SPR_KICK_LEFT SPRPAT
+            PlayerObj @ SPR_KICK_LEFT SPRPAT
         ELSE
             \ Kick Right
-            CalcObj @ SPR_KICK_RIGHT SPRPAT
+            PlayerObj @ SPR_KICK_RIGHT SPRPAT
         THEN
     ELSE
         \ Not Kicking
-        CalcObj CALC_DIR + @ FACE_LEFT =
+        PlayerObj CALC_DIR + @ FACE_LEFT =
         IF
             \ Facing Left
-            CalcObj CALC_ANIM_FRAME + @ 0=
+            PlayerObj CALC_ANIM_FRAME + @ 0=
             IF
-                CalcObj @ SPR_FACE_LEFT1 SPRPAT
+                PlayerObj @ SPR_FACE_LEFT1 SPRPAT
             ELSE
-                CalcObj @ SPR_FACE_LEFT2 SPRPAT
+                PlayerObj @ SPR_FACE_LEFT2 SPRPAT
             THEN
         ELSE
             \ Facing Right
-            CalcObj CALC_ANIM_FRAME + @ 0=
+            PlayerObj CALC_ANIM_FRAME + @ 0=
             IF
-                CalcObj @ SPR_FACE_RIGHT1 SPRPAT
+                PlayerObj @ SPR_FACE_RIGHT1 SPRPAT
             ELSE
-                CalcObj @ SPR_FACE_RIGHT2 SPRPAT
+                PlayerObj @ SPR_FACE_RIGHT2 SPRPAT
             THEN
         THEN
     THEN
 
     ;
 
-: ProcessKick ( calc_obj --)
-    \ calc_obj is doing the kicking
+: ProcessKick ( player_obj --)
+    \ player_obj is doing the kicking
 
-    \ Save addr of calc_obj
-    TO CalcObj
-    CalcObj @ TO Kicker
-    CalcObj CALC_OPP_SPR + @ TO Kickie
+    \ Save addr of player_obj
+    TO PlayerObj
+    PlayerObj @ TO Kicker
+    PlayerObj CALC_OPP_SPR + @ TO Kickie
 
-    CalcObj CALC_DIR + @ FACE_LEFT = \ kicker is facing left
+    PlayerObj CALC_DIR + @ FACE_LEFT = \ kicker is facing left
     Kickie SPRLOC? SWAP DROP 
     Kicker SPRLOC? SWAP DROP 
     < \ kickie is to the left of kicker
@@ -414,7 +421,7 @@ DECIMAL
         \ send Kickie flying to the left
         Kickie 0 -25 SPRVEC \ Move left
     ELSE
-    CalcObj CALC_DIR + @ FACE_RIGHT = \ kicker is facing right
+    PlayerObj CALC_DIR + @ FACE_RIGHT = \ kicker is facing right
     Kickie SPRLOC? SWAP DROP 
     Kicker SPRLOC? SWAP DROP 
     > \ kickie is to the right of kicker
@@ -434,15 +441,15 @@ DECIMAL
         1 0 0 SPRVEC \ Stop moving
 
         \ Check if sprite one is kicking
-        (CalcObj1) CALC_KICK? + @
+        (Player2) CALC_KICK? + @
         IF
-            (CalcObj1) ProcessKick
+            (Player2) ProcessKick
         THEN
 
         \ Check if sprite zero is kicking
-        (CalcObj0) CALC_KICK? + @
+        (Player1) CALC_KICK? + @
         IF
-            (CalcObj0) ProcessKick
+            (Player1) ProcessKick
         THEN
 
 
@@ -458,8 +465,8 @@ DECIMAL
         0 JOYST
 
         \ Calc new sprites and positions
-        (CalcObj0) Calc
-        (CalcObj1) Calc
+        (Player1) Calc
+        (Player2) Calc
 
         \ Check collision
         CheckCollision
