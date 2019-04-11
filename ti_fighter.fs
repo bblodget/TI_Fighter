@@ -10,7 +10,6 @@ FORGET -->>
 
    0 VALUE Column			\ used by DrawIt
    0 VALUE Row			\ used by DrawIt
-   \ 0 VALUE LeftManPat			\ used Update
 
    1 CONSTANT Fire?		\ comparison check for fire button
    2 CONSTANT Left?		\ comparison check for left
@@ -101,6 +100,12 @@ HEX
 
 : DiagDownUDG ( --) \ Diagonal from upper right to lower left
    DATA 4 FF7F 3F1F 0F07 0301 99 DCHAR ;
+
+: P1BoxUDG ( --) \ Player 1 square for strength indicator. Color set 20
+   DATA 4 FFFF FFFF FFFF FFFF A0 DCHAR ;
+
+: P2BoxUDG ( --) \ Player2 square for strength indicator. Color set 21
+   DATA 4 FFFF FFFF FFFF FFFF A8 DCHAR ;
 
 0 CONSTANT SPR_FACE_RIGHT1
 
@@ -205,11 +210,14 @@ DECIMAL
    17 1 8  COLOR  	\ shrine color
    18 1 8  COLOR  	\ shrine color
    19 8 14  COLOR  	\ shrine corner color
+   20 5 14 COLOR  	\ Player 1 strength box (Purple)
+   21 2 14  COLOR  	\ Player 2 strength box (Green)
    BrickUDG 
    LLineUDG RLineUDG BLineUDG TLineUDG
    LBLineUDG RBLineUDG LTLineUDG RTLineUDG
    LBTLineUDG RBTLineUDG BTLineUDG 
    DiagUpUDG DiagDownUDG
+   P1BoxUDG P2BoxUDG
    ManRight1 ManRight2
    ManLeft1 ManLeft2
    ManRightKick ManLeftKick
