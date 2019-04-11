@@ -109,7 +109,7 @@ HEX
 
 0 CONSTANT SPR_FACE_RIGHT1
 
-: ManRight1 ( --) \ man facing right, frame #1
+: PlayerRight1 ( --) \ man facing right, frame #1
    DATA 4 0302 0201 0302 0607 100 DCHAR
    DATA 4 0603 0202 0202 0203 101 DCHAR
    DATA 4 0080 8000 C048 6850 102 DCHAR
@@ -117,7 +117,7 @@ HEX
 
 4 CONSTANT SPR_FACE_RIGHT2
 
-: ManRight2 ( --) \ man facing right, frame #2
+: PlayerRight2 ( --) \ man facing right, frame #2
    DATA 4 0101 0100 0306 0A07 104 DCHAR
    DATA 4 0203 0202 0204 0406 105 DCHAR
    DATA 4 8040 4080 C868 5040 106 DCHAR
@@ -125,7 +125,7 @@ HEX
 
 8 CONSTANT SPR_FACE_LEFT1
 
-: ManLeft1 ( --) \ man facing left frame #1
+: PlayerLeft1 ( --) \ man facing left frame #1
    DATA 4 0001 0100 0312 160A 108 DCHAR
    DATA 4 0203 0202 0202 020F 109 DCHAR
    DATA 4 C040 4080 C040 60E0 10A DCHAR
@@ -133,7 +133,7 @@ HEX
 
 C CONSTANT SPR_FACE_LEFT2
 
-: ManLeft2 ( --) \ man facing left frame #2
+: PlayerLeft2 ( --) \ man facing left frame #2
    DATA 4 0102 0201 1316 0A02 10C DCHAR
    DATA 4 0203 0204 0808 0838 10D DCHAR
    DATA 4 8080 8000 C060 50E0 10E DCHAR
@@ -141,7 +141,7 @@ C CONSTANT SPR_FACE_LEFT2
 
 10 CONSTANT SPR_KICK_RIGHT
 
-: ManRightKick ( --) \ man facing right kicks
+: PlayerRightKick ( --) \ man facing right kicks
    DATA 4 0101 0100 0306 0A12 110 DCHAR
    DATA 4 1213 0202 0204 0406 111 DCHAR
    DATA 4 8048 4989 D162 4448 112 DCHAR
@@ -149,7 +149,7 @@ C CONSTANT SPR_FACE_LEFT2
 
 14 CONSTANT SPR_KICK_LEFT
 
-: ManLeftKick ( --) \ man facing left kicks
+: PlayerLeftKick ( --) \ man facing left kicks
    DATA 4 0112 9291 8B46 2212 114 DCHAR
    DATA 4 0A07 0000 0000 0000 115 DCHAR
    DATA 4 8080 8000 C060 5048 116 DCHAR
@@ -173,7 +173,7 @@ DECIMAL
 : DrawBrick ( --) \ draws a brick tile at Column & Row
    128 129 130 131 DrawIt ;
 
-: ManSprite0 ( --) \  Defines sprite 0
+: P1Sprite ( --) \  Defines sprite 0
     0 128 24 SPR_FACE_RIGHT1 5 SPRITE
 
     \ Init the CalcObj0
@@ -187,7 +187,7 @@ DECIMAL
     1 (CalcObj0) CALC_OPP_SPR + !
     ;
 
-: ManSprite1 ( --) \  Defines sprite 1
+: P2Sprite ( --) \  Defines sprite 1
     1 128 200 SPR_FACE_LEFT1 2 SPRITE 
 
     \ Init the CalcObj1
@@ -218,9 +218,9 @@ DECIMAL
    LBTLineUDG RBTLineUDG BTLineUDG 
    DiagUpUDG DiagDownUDG
    P1BoxUDG P2BoxUDG
-   ManRight1 ManRight2
-   ManLeft1 ManLeft2
-   ManRightKick ManLeftKick
+   PlayerRight1 PlayerRight2
+   PlayerLeft1 PlayerLeft2
+   PlayerRightKick PlayerLeftKick
    ;
 
 : BrickRows ( --)
@@ -477,8 +477,8 @@ DECIMAL
     DefineGraphics BrickRows
     9 8 ShintoShrine
     3 MAGNIFY
-    ManSprite0
-    ManSprite1
+    P1Sprite
+    P2Sprite
     30 23 GOTOXY
     ClrKey
     MainLoop
