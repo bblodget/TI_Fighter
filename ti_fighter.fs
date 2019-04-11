@@ -23,6 +23,12 @@ FORGET -->>
 \ CalcObj : Current CalcObj
 0 VALUE CalcObj
 
+\ Sprite number of the kicking sprite
+0 VALUE Kicker
+
+\ Sprite number of the kickie sprite
+0 VALUE Kickie
+
 \ Calc constants, vars, and obj
 
 8   CONSTANT MAX_KICK_TIME
@@ -32,10 +38,10 @@ FORGET -->>
 20  CONSTANT COINC_TOLERANCE
 
 \ CalcObj0 : Holds data relating to sprite 0
-create (CalcObj0) 14 allot
+create (CalcObj0) 16 allot
 
 \ CalcObj1 : Holds data relating to sprite 1
-create (CalcObj1) 14 allot
+create (CalcObj1) 16 allot
 
 \ Constant Offsets into CalcObj (Fields)
 0   CONSTANT CALC_SPRITE
@@ -45,6 +51,7 @@ create (CalcObj1) 14 allot
 8   CONSTANT CALC_ANIM_FRAME
 10  CONSTANT CALC_MOVE_TIME
 12  CONSTANT CALC_PREV_JOYST
+14  CONSTANT CALC_OPP_SPR
 
 
 
@@ -172,6 +179,7 @@ DECIMAL
     0 (CalcObj0) CALC_ANIM_FRAME + !
     0 (CalcObj0) CALC_MOVE_TIME + !
     0 (CalcObj0) CALC_PREV_JOYST + !
+    1 (CalcObj0) CALC_OPP_SPR + !
     ;
 
 : ManSprite1 ( --) \  Defines sprite 1
@@ -185,6 +193,7 @@ DECIMAL
     0 (CalcObj1) CALC_ANIM_FRAME + !
     0 (CalcObj1) CALC_MOVE_TIME + !
     0 (CalcObj1) CALC_PREV_JOYST + !
+    0 (CalcObj1) CALC_OPP_SPR + !
     ;
 
 : DefineGraphics ( --)
@@ -380,6 +389,35 @@ DECIMAL
 
     ;
 
+: ProcessKick ( calc_obj --)
+    \ calc_obj is doing the kicking
+
+    \ Save addr of calc_obj
+    TO CalcObj
+    CalcObj @ TO Kicker
+    CalcObj CALC_OPP_SPR + @ TO Kickie
+
+    CalcObj CALC_DIR + @ FACE_LEFT = \ kicker is facing left
+    Kickie SPRLOC? SWAP DROP 
+    Kicker SPRLOC? SWAP DROP 
+    < \ kickie is to the left of kicker
+    AND \ and the kicker is facing left
+    IF
+        \ send Kickie flying to the left
+        Kickie 0 -25 SPRVEC \ Move left
+    ELSE
+    CalcObj CALC_DIR + @ FACE_RIGHT = \ kicker is facing right
+    Kickie SPRLOC? SWAP DROP 
+    Kicker SPRLOC? SWAP DROP 
+    > \ kickie is to the right of kicker
+    AND \ and kicker is facing right
+    IF
+        \ send Kickie flying to the right
+        Kickie 0 25 SPRVEC \ Move right
+    THEN
+    THEN
+    ;
+
 : CheckCollision ( --)
     COINC_TOLERANCE 0 1 COINC
     IF
@@ -387,45 +425,18 @@ DECIMAL
         0 0 0 SPRVEC \ Stop moving
         1 0 0 SPRVEC \ Stop moving
 
-        \ Check if sprite zero is kicking
-        (CalcObj0) CALC_KICK? + @
-        IF
-            (CalcObj0) CALC_DIR + @ FACE_LEFT = \ kicker is facing left
-            1 SPRLOC? SWAP DROP 0 SPRLOC? SWAP DROP < \ kickie is to the left of kicker
-            AND
-            IF
-                \ send sprite 1 flying to the left
-                1 0 -25 SPRVEC \ Move left
-            ELSE
-            (CalcObj0) CALC_DIR + @ FACE_RIGHT = \ kicker is facing right
-            1 SPRLOC? SWAP DROP 0 SPRLOC? SWAP DROP > \ kickie is to the right of kicker
-            AND
-            IF
-                \ send sprite 1 flying to the right
-                1 0 25 SPRVEC \ Move right
-            THEN
-            THEN
-        THEN
-
         \ Check if sprite one is kicking
         (CalcObj1) CALC_KICK? + @
         IF
-            (CalcObj1) CALC_DIR + @ FACE_LEFT = \ kicker is facing left
-            0 SPRLOC? SWAP DROP 1 SPRLOC? SWAP DROP < \ kickie is to the left of kicker
-            AND
-            IF
-                \ send sprite 0 flying to the left
-                0 0 -25 SPRVEC \ Move left
-            ELSE
-            (CalcObj1) CALC_DIR + @ FACE_RIGHT = \ kicker is facing right
-            0 SPRLOC? SWAP DROP 1 SPRLOC? SWAP DROP > \ kickie is to the right of kicker
-            AND
-            IF
-                \ send sprite 0 flying to the right
-                0 0 25 SPRVEC \ Move right
-            THEN
-            THEN
+            (CalcObj1) ProcessKick
         THEN
+
+        \ Check if sprite zero is kicking
+        (CalcObj0) CALC_KICK? + @
+        IF
+            (CalcObj0) ProcessKick
+        THEN
+
 
     THEN
 ;
