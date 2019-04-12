@@ -28,6 +28,9 @@ FORGET -->>
 \ Sprite number of the kickie sprite
 0 VALUE Kickie
 
+\ Power bars need updating?
+False VALUE UpdateBars?
+
 \ Calc constants, vars, and obj
 
 8   CONSTANT MAX_KICK_TIME
@@ -35,12 +38,13 @@ FORGET -->>
 1   CONSTANT FACE_LEFT
 2   CONSTANT FACE_RIGHT
 20  CONSTANT COINC_TOLERANCE
+161  CONSTANT BLANK_CHAR
 
 \ Player1 : Holds data relating to sprite 0
-create (Player1) 20 allot
+create (Player1) 22 allot
 
 \ Player2 : Holds data relating to sprite 1
-create (Player2) 20 allot
+create (Player2) 22 allot
 
 \ Constant Offsets into PlayerObj (Fields)
 0   CONSTANT CALC_SPRITE
@@ -53,6 +57,7 @@ create (Player2) 20 allot
 14  CONSTANT CALC_OPP_SPR
 16  CONSTANT CALC_POWER_CHAR
 18  CONSTANT CALC_POWER
+20  CONSTANT CALC_OPP_PLAYER
 
 
 
@@ -105,11 +110,11 @@ HEX
 
 : P1BoxUDG ( --) \ Player 1 square for strength indicator. Color set 20
    DATA 4 FFFF FFFF FFFF FFFF A0 DCHAR 
-   DATA 4 0000 0000 0000 0000 A1 DCHAR ;
+   DATA 4 0000 0000 0000 0000 A1 DCHAR \ Blank char
+   ;
 
 : P2BoxUDG ( --) \ Player2 square for strength indicator. Color set 21
-   DATA 4 FFFF FFFF FFFF FFFF A8 DCHAR 
-   DATA 4 0000 0000 0000 0000 A9 DCHAR ;
+   DATA 4 FFFF FFFF FFFF FFFF A8 DCHAR ;
 
 0 CONSTANT SPR_FACE_RIGHT1
 
@@ -191,6 +196,7 @@ DECIMAL
     1 (Player1) CALC_OPP_SPR + !
     160 (Player1) CALC_POWER_CHAR + !
     10 (Player1) CALC_POWER + !
+    (Player2) (Player1) CALC_OPP_PLAYER + !
     ;
 
 : P2Sprite ( --) \  Defines sprite 1
@@ -207,6 +213,7 @@ DECIMAL
     0 (Player2) CALC_OPP_SPR + !
     168 (Player2) CALC_POWER_CHAR + !
     10 (Player2) CALC_POWER + !
+    (Player1) (Player2) CALC_OPP_PLAYER + !
     ;
 
 : DefineGraphics ( --)
@@ -250,8 +257,14 @@ DECIMAL
     Column Row GOTOXY
     10 0 
     DO
-        PlayerObj CALC_POWER_CHAR + @ EMIT
+        I PlayerObj CALC_POWER + @ <
+        IF
+            PlayerObj CALC_POWER_CHAR + @ EMIT
+        ELSE
+            BLANK_CHAR EMIT
+        THEN
     LOOP
+    False TO UpdateBars?
     ;
 
 : ShintoShrine ( x y --) \ (x,y) upper left corner of shrine
@@ -418,6 +431,7 @@ DECIMAL
 
     ;
 
+
 : ProcessKick ( player_obj --)
     \ player_obj is doing the kicking
 
@@ -434,6 +448,12 @@ DECIMAL
     IF
         \ send Kickie flying to the left
         Kickie 0 -25 SPRVEC \ Move left
+
+        \ Subtract Power from opponent
+        -1 PlayerObj CALC_OPP_PLAYER + @ CALC_POWER + +!
+
+        \ Flag that PowerBars need to be updated
+        True TO UpdateBars?
     ELSE
     PlayerObj CALC_DIR + @ FACE_RIGHT = \ kicker is facing right
     Kickie SPRLOC? SWAP DROP 
@@ -443,6 +463,12 @@ DECIMAL
     IF
         \ send Kickie flying to the right
         Kickie 0 25 SPRVEC \ Move right
+
+        \ Subtract Power from opponent
+        -1 PlayerObj CALC_OPP_PLAYER + @ CALC_POWER + +!
+
+        \ Flag that PowerBars need to be updated
+        True TO UpdateBars?
     THEN
     THEN
     ;
@@ -458,12 +484,22 @@ DECIMAL
         (Player2) CALC_KICK? + @
         IF
             (Player2) ProcessKick
+            \ Update the Power bars
+            UpdateBars?
+            IF
+                3 3 (Player1) PowerLevel
+            THEN
         THEN
 
         \ Check if sprite zero is kicking
         (Player1) CALC_KICK? + @
         IF
             (Player1) ProcessKick
+            \ Update the Power bars
+            UpdateBars?
+            IF
+                19 3 (Player2) PowerLevel
+            THEN
         THEN
 
 
@@ -486,7 +522,8 @@ DECIMAL
         CheckCollision
 
         \  Move the sprites
-        0 4 SPRMOV
+        0 2 SPRMOV
+
 
         \ Sleep for a bit
         DelayTime Delay
